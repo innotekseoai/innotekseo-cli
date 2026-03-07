@@ -25,7 +25,12 @@ function walkDir(dir: string, recursive: boolean): string[] {
   return results;
 }
 
-export function scanDirectory(dir: string, recursive = false): ScannedFile[] {
+export function scanDirectory(dir: string, recursive = false, rootDir?: string): ScannedFile[] {
+  const resolvedRoot = path.resolve(rootDir ?? dir);
+  const resolvedDir = path.resolve(dir);
+  if (!resolvedDir.startsWith(resolvedRoot)) {
+    throw new Error(`Directory traversal detected: ${dir} is outside root ${resolvedRoot}`);
+  }
   const files = walkDir(dir, recursive);
   return files.map((filePath) => {
     const raw = fs.readFileSync(filePath, 'utf-8');
@@ -45,11 +50,12 @@ export function scanDirectory(dir: string, recursive = false): ScannedFile[] {
   });
 }
 
-export function toEntries(files: ScannedFile[], baseUrl: string): LlmsEntry[] {
+export function toEntries(files: ScannedFile[], baseUrl: string, pathPrefix = 'articles'): LlmsEntry[] {
   const cleanBase = baseUrl.replace(/\/+$/, '');
+  const cleanPrefix = pathPrefix.replace(/^\/+|\/+$/g, '');
   return files.map((f) => ({
     title: (f.frontmatter.title as string) || f.slug,
-    url: `${cleanBase}/articles/${f.slug}`,
+    url: `${cleanBase}/${cleanPrefix}/${f.slug}`,
     summary: f.excerpt,
   }));
 }

@@ -1,41 +1,41 @@
-# innotek-seo CLI
+# innotekseo CLI
 
 > Free CLI tool for AI-first SEO — generate `llms.txt` from markdown files and scaffold GEO-optimised article sites.
 
 ```bash
-npx innotek-seo scan ./content/articles --url https://yourdomain.com
-npx innotek-seo init ./my-article-site
+npx innotekseo scan ./content/articles --url https://yourdomain.com
+npx innotekseo init ./my-article-site
 ```
 
 ## Installation
 
 ```bash
-npm install -g innotek-seo
+npm install -g innotekseo
 ```
 
 Or use without installing:
 ```bash
-npx innotek-seo <command>
+npx innotekseo <command>
 ```
 
 ## Commands
 
-### `innotek-seo scan <directory>`
+### `innotekseo scan <directory>`
 
 Scans a directory of `.md` and `.mdx` files and generates an `llms.txt` file.
 
 ```bash
 # Basic usage
-innotek-seo scan ./content/articles --url https://yourdomain.com
+innotekseo scan ./content/articles --url https://yourdomain.com
 
 # Output to custom path
-innotek-seo scan ./docs --url https://yourdomain.com --output ./public/llms.txt
+innotekseo scan ./docs --url https://yourdomain.com --output ./public/llms.txt
 
 # Preview without writing
-innotek-seo scan ./content --url https://yourdomain.com --dry-run
+innotekseo scan ./content --url https://yourdomain.com --dry-run
 
 # Scan subdirectories
-innotek-seo scan ./content --url https://yourdomain.com --recursive
+innotekseo scan ./content --url https://yourdomain.com --recursive
 ```
 
 **Options:**
@@ -47,12 +47,12 @@ innotek-seo scan ./content --url https://yourdomain.com --recursive
 | `-r, --recursive` | `false` | Scan subdirectories |
 | `--dry-run` | `false` | Print to stdout, don't write file |
 
-### `innotek-seo init <output-dir>`
+### `innotekseo init <output-dir>`
 
 Scaffolds a new Next.js article site with auto-generated nav from `.mdx` files.
 
 ```bash
-innotek-seo init ./my-blog
+innotekseo init ./my-blog
 cd ./my-blog
 npm run dev
 ```
@@ -64,6 +64,81 @@ Then drop any `.mdx` file into `content/articles/` — it automatically appears 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--skip-install` | `false` | Skip npm install |
+
+---
+
+### `innotekseo articles list`
+
+List all articles in an innotekseoai.com site.
+
+```bash
+innotekseo articles list --site-dir ./path/to/innotekseoai
+```
+
+### `innotekseo articles add <file>`
+
+Add a `.md` or `.mdx` article file to the site's `content/articles/` directory.
+
+```bash
+# Dry run — preview without writing
+innotekseo articles add ./my-article.mdx --site-dir ./path/to/innotekseoai --dry-run
+
+# Actually copy the file
+innotekseo articles add ./my-article.mdx --site-dir ./path/to/innotekseoai
+```
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--site-dir <path>` | auto-detect | Path to innotekseoai.com site root |
+| `--dry-run` | `false` | Preview without writing |
+
+---
+
+### `innotekseo blog list`
+
+List all blog posts from `lib/config/blog-posts.json`.
+
+```bash
+innotekseo blog list --site-dir ./path/to/innotekseoai
+```
+
+### `innotekseo blog add <file>`
+
+Parse a markdown file with YAML frontmatter and append it to `blog-posts.json` (sorted by date desc).
+
+```bash
+# Dry run
+innotekseo blog add ./my-post.md --site-dir ./path/to/innotekseoai --dry-run
+
+# Add post
+innotekseo blog add ./my-post.md --site-dir ./path/to/innotekseoai
+```
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--site-dir <path>` | auto-detect | Path to innotekseoai.com site root |
+| `--dry-run` | `false` | Preview without writing |
+
+---
+
+### Site directory resolution
+
+The `--site-dir` option (used by `articles` and `blog` commands) resolves in priority order:
+
+1. Explicit `--site-dir <path>` CLI flag
+2. `INNOTEKSEO_SITE_DIR` environment variable
+3. Auto-detect sibling directory: `../innotekseoai/innotek-agenticseo-console`
+
+```bash
+# Use env var instead of repeating --site-dir on every command
+export INNOTEKSEO_SITE_DIR=/path/to/innotekseoai/innotek-agenticseo-console
+innotekseo articles list
+innotekseo blog list
+```
 
 ## Frontmatter Format
 

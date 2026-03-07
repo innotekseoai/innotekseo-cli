@@ -1,19 +1,21 @@
 {
-  "name": "innotek-seo",
+  "name": "innotekseo",
   "version": "1.0.0",
   "description": "Free CLI to generate llms.txt from markdown files and scaffold GEO-optimised article sites",
   "keywords": ["llms.txt", "seo", "geo", "ai-seo", "innotek"],
   "author": "Innotek Solutions Ltd",
   "license": "MIT",
   "bin": {
-    "innotek-seo": "./dist/index.js"
+    "innotekseo": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc && npm run copy-templates",
     "copy-templates": "node -e \"const fs=require('fs');const path=require('path');function cp(src,dst){if(!fs.existsSync(dst))fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src)){const s=path.join(src,f);const d=path.join(dst,f);if(fs.statSync(s).isDirectory())cp(s,d);else fs.copyFileSync(s,d);}}cp('src/templates','dist/templates');\"",
     "dev": "tsx src/index.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "commander": "^12.0.0",
@@ -21,7 +23,9 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
   }
 }

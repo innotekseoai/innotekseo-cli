@@ -1,14 +1,32 @@
 {
-  "name": "innotekseo",
+  "name": "@innotekseo/cli",
   "version": "1.0.0",
   "description": "Free CLI to generate llms.txt from markdown files and scaffold GEO-optimised article sites",
-  "keywords": ["llms.txt", "seo", "geo", "ai-seo", "innotek"],
+  "keywords": [
+    "llms.txt",
+    "seo",
+    "geo",
+    "ai-seo",
+    "innotek",
+    "geo-seo",
+    "articles",
+    "blog"
+  ],
   "author": "Innotek Solutions Ltd",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/innotekseoai/innotekseo-cli.git"
+  },
+  "homepage": "https://innotekseoai.com/platform-toolkits",
   "bin": {
-    "innotekseo": "./dist/index.js"
+    "innotekseo": "dist/index.js"
   },
   "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc && npm run copy-templates",
     "copy-templates": "node -e \"const fs=require('fs');const path=require('path');function cp(src,dst){if(!fs.existsSync(dst))fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src)){const s=path.join(src,f);const d=path.join(dst,f);if(fs.statSync(s).isDirectory())cp(s,d);else fs.copyFileSync(s,d);}}cp('src/templates','dist/templates');\"",
@@ -27,5 +45,8 @@
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

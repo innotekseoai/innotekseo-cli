@@ -1,28 +1,39 @@
-# innotekseo CLI
+# @innotekseo/cli
 
-> Free CLI tool for AI-first SEO — generate `llms.txt` from markdown files and scaffold GEO-optimised article sites.
+> Free CLI for AI-first SEO — generate `llms.txt` from markdown files and scaffold GEO-optimised article and blog sites.
+
+Part of the **[Innotek Platform Toolkits](https://innotekseoai.com/platform-toolkits)** — open-source tools for AI-era content discoverability.
+
+**GitHub:** [innotekseoai/innotekseo-cli](https://github.com/innotekseoai/innotekseo-cli)
 
 ```bash
-npx innotekseo scan ./content/articles --url https://yourdomain.com
-npx innotekseo init ./my-article-site
+npx @innotekseo/cli scan ./content/articles --url https://yourdomain.com
+npx @innotekseo/cli init ./my-article-site
 ```
 
 ## Installation
 
 ```bash
-npm install -g innotekseo
+npm install -g @innotekseo/cli
 ```
 
 Or use without installing:
+
 ```bash
-npx innotekseo <command>
+npx @innotekseo/cli <command>
+```
+
+The binary name is `innotekseo` — after global install, run as:
+
+```bash
+innotekseo scan ./content --url https://yourdomain.com
 ```
 
 ## Commands
 
 ### `innotekseo scan <directory>`
 
-Scans a directory of `.md` and `.mdx` files and generates an `llms.txt` file.
+Scans a directory of `.md` and `.mdx` files and generates an `llms.txt` file — a machine-readable index that tells AI assistants and answer engines what your site contains.
 
 ```bash
 # Basic usage
@@ -47,17 +58,19 @@ innotekseo scan ./content --url https://yourdomain.com --recursive
 | `-r, --recursive` | `false` | Scan subdirectories |
 | `--dry-run` | `false` | Print to stdout, don't write file |
 
+---
+
 ### `innotekseo init <output-dir>`
 
-Scaffolds a new Next.js article site with auto-generated nav from `.mdx` files.
+Scaffolds a new article site with auto-generated nav from `.mdx` files.
 
 ```bash
-innotekseo init ./my-blog
-cd ./my-blog
+innotekseo init ./my-article-site
+cd ./my-article-site
 npm run dev
 ```
 
-Then drop any `.mdx` file into `content/articles/` — it automatically appears in the nav and article list.
+Drop any `.mdx` file into `content/articles/` — it automatically appears in the nav and article list.
 
 **Options:**
 
@@ -69,10 +82,10 @@ Then drop any `.mdx` file into `content/articles/` — it automatically appears 
 
 ### `innotekseo articles list`
 
-List all articles in an innotekseoai.com site.
+List all articles in an innotekseoai site.
 
 ```bash
-innotekseo articles list --site-dir ./path/to/innotekseoai
+innotekseo articles list --site-dir ./path/to/site
 ```
 
 ### `innotekseo articles add <file>`
@@ -81,18 +94,11 @@ Add a `.md` or `.mdx` article file to the site's `content/articles/` directory.
 
 ```bash
 # Dry run — preview without writing
-innotekseo articles add ./my-article.mdx --site-dir ./path/to/innotekseoai --dry-run
+innotekseo articles add ./my-article.mdx --site-dir ./path/to/site --dry-run
 
-# Actually copy the file
-innotekseo articles add ./my-article.mdx --site-dir ./path/to/innotekseoai
+# Copy the file
+innotekseo articles add ./my-article.mdx --site-dir ./path/to/site
 ```
-
-**Options:**
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--site-dir <path>` | auto-detect | Path to innotekseoai.com site root |
-| `--dry-run` | `false` | Preview without writing |
 
 ---
 
@@ -101,7 +107,7 @@ innotekseo articles add ./my-article.mdx --site-dir ./path/to/innotekseoai
 List all blog posts from `lib/config/blog-posts.json`.
 
 ```bash
-innotekseo blog list --site-dir ./path/to/innotekseoai
+innotekseo blog list --site-dir ./path/to/site
 ```
 
 ### `innotekseo blog add <file>`
@@ -109,40 +115,31 @@ innotekseo blog list --site-dir ./path/to/innotekseoai
 Parse a markdown file with YAML frontmatter and append it to `blog-posts.json` (sorted by date desc).
 
 ```bash
-# Dry run
-innotekseo blog add ./my-post.md --site-dir ./path/to/innotekseoai --dry-run
-
-# Add post
-innotekseo blog add ./my-post.md --site-dir ./path/to/innotekseoai
+innotekseo blog add ./my-post.md --site-dir ./path/to/site --dry-run
+innotekseo blog add ./my-post.md --site-dir ./path/to/site
 ```
-
-**Options:**
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--site-dir <path>` | auto-detect | Path to innotekseoai.com site root |
-| `--dry-run` | `false` | Preview without writing |
 
 ---
 
 ### Site directory resolution
 
-The `--site-dir` option (used by `articles` and `blog` commands) resolves in priority order:
+The `--site-dir` option resolves in priority order:
 
 1. Explicit `--site-dir <path>` CLI flag
 2. `INNOTEKSEO_SITE_DIR` environment variable
 3. Auto-detect sibling directory: `../innotekseoai/innotek-agenticseo-console`
 
 ```bash
-# Use env var instead of repeating --site-dir on every command
-export INNOTEKSEO_SITE_DIR=/path/to/innotekseoai/innotek-agenticseo-console
+export INNOTEKSEO_SITE_DIR=/path/to/site
 innotekseo articles list
 innotekseo blog list
 ```
 
+---
+
 ## Frontmatter Format
 
-Articles use YAML frontmatter:
+Articles and blog posts use YAML frontmatter:
 
 ```yaml
 ---
@@ -154,7 +151,7 @@ excerpt: "AI models cite content with verifiable facts 3.7× more often..."
 readTime: "12 min read"
 ---
 
-## Your article content here...
+## Your content here...
 ```
 
 ## How llms.txt Works
@@ -170,18 +167,30 @@ The `llms.txt` standard is a machine-readable file that tells AI models what you
 - [Entity Clarity Guide](https://yourdomain.com/articles/entity-clarity-guide): How to score and improve...
 ```
 
-## Enterprise: Automated Multi-Page AI Compliance
+## Related Packages
+
+Part of the `@innotekseo` toolkit:
+
+| Package | Description |
+|---|---|
+| [`@innotekseo/blogs-core`](https://www.npmjs.com/package/@innotekseo/blogs-core) | Content adapter library + REST API for Astro blog systems |
+| [`@innotekseo/blogs-components`](https://www.npmjs.com/package/@innotekseo/blogs-components) | Astro UI components for MDX content |
+| [`@innotekseo/blogs-migrate`](https://www.npmjs.com/package/@innotekseo/blogs-migrate) | HTML-to-MDX migration CLI |
+
+→ **[Innotek Platform Toolkits](https://innotekseoai.com/platform-toolkits)** — full suite of open-source SEO and content tools.
+
+## Enterprise
 
 The CLI handles single-site, manual workflows. For production AI compliance at scale:
 
 | Feature | CLI (Free) | Innotek Enterprise |
 |---------|-----------|-------------------|
-| llms.txt generation | ✓ Manual | ✓ Automated |
-| GEO audit scoring | ✗ | ✓ 8 AI readiness metrics |
-| Schema.org generation | ✗ | ✓ Per-page JSON-LD |
-| AI citation tracking | ✗ | ✓ ChatGPT, Perplexity, Claude |
-| Multi-page crawl | ✗ | ✓ Up to 50 pages |
-| Brand visibility monitoring | ✗ | ✓ Weekly AI scans |
+| llms.txt generation | Manual | Automated |
+| GEO audit scoring | — | 8 AI readiness metrics |
+| Schema.org generation | — | Per-page JSON-LD |
+| AI citation tracking | — | ChatGPT, Perplexity, Claude |
+| Multi-page crawl | — | Up to 50 pages |
+| Brand visibility monitoring | — | Weekly AI scans |
 
 → **[Innotek Enterprise](https://innotekseoai.com/pricing)** — automated AI discoverability for your entire site.
 

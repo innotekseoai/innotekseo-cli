@@ -4,6 +4,18 @@ Guidance for Claude Code when working in this repository.
 
 ---
 
+## ⚠️ Superseded by @innotekseo/console
+
+This package (`@innotekseo/cli`) has been **superseded** by [`@innotekseo/console`](https://github.com/innotekseoai/innotekseo-console). The console is a full AI-powered terminal TUI with an agent loop, MCP integration, and all the functionality this CLI offered plus much more.
+
+**Key implications:**
+- The `innotekseo` bin name now belongs to `@innotekseo/console`
+- Do NOT publish new versions of this package that claim the `innotekseo` bin
+- This repo is kept for reference only — no new features should be added
+- If a user asks about publishing or updating this CLI, direct them to `innotekseo-console` instead
+
+---
+
 ## Quick-reference commands
 
 ```bash
@@ -47,6 +59,23 @@ npm run dev -- blog add ./my-post.md --site-dir D:/repos/innotekseoai/innotek-ag
 export INNOTEKSEO_SITE_DIR=D:/repos/innotekseoai/innotek-agenticseo-console
 npm run dev -- articles list
 npm run dev -- blog list
+
+# WordPress publishing (WP-CLI transport)
+npm run dev -- wp list --wp-path /var/www/html
+npm run dev -- wp add ./my-post.md --wp-path /var/www/html --status publish
+npm run dev -- wp add ./my-post.md --wp-path /var/www/html --dry-run
+
+# WordPress publishing (REST API — IONOS, GoDaddy, any host)
+npm run dev -- wp list --transport rest --wp-url https://example.com --wp-user admin --wp-pass "xxxx xxxx xxxx xxxx"
+npm run dev -- wp add ./my-post.md --transport rest --wp-url https://example.com --wp-user admin --wp-pass "xxxx xxxx xxxx xxxx"
+npm run dev -- wp scan ./content --transport rest --wp-url https://example.com --wp-user admin --wp-pass "xxxx xxxx xxxx xxxx" --publish
+
+# Or use env vars for WordPress credentials
+export WP_URL=https://example.com
+export WP_USER=admin
+export WP_PASS="xxxx xxxx xxxx xxxx"
+npm run dev -- wp list --transport rest
+npm run dev -- wp add ./my-post.md --transport rest --status draft
 ```
 
 ---
@@ -61,13 +90,16 @@ innotekseo-cli/
 │   │   ├── scan.ts                  # `innotekseo scan`
 │   │   ├── init.ts                  # `innotekseo init`
 │   │   ├── articles.ts              # `innotekseo articles list|add`
-│   │   └── blog.ts                  # `innotekseo blog list|add`
+│   │   ├── blog.ts                  # `innotekseo blog list|add`
+│   │   └── wp.ts                    # `innotekseo wp list|add|scan`
 │   ├── lib/
 │   │   ├── md-scanner.ts            # walkDir, scanDirectory, toEntries
 │   │   ├── llms-builder.ts          # buildLlmsTxt — formats llms.txt string
 │   │   ├── frontmatter-validator.ts # validateFrontmatter — shared schema check
 │   │   ├── site-locator.ts          # resolveSiteDir — finds innotekseoai.com repo
-│   │   └── scaffolder.ts            # scaffold — copies/renders templates for `init`
+│   │   ├── scaffolder.ts            # scaffold — copies/renders templates for `init`
+│   │   ├── wp-transport.ts          # WpTransport interface, WP-CLI + REST impls
+│   │   └── md-to-html.ts            # markdownToHtml — uses `marked` for WP content
 │   └── templates/                   # Excluded from tsc; copied verbatim to dist/templates/
 │       ├── package.json.tpl
 │       ├── next.config.ts.tpl
@@ -79,7 +111,9 @@ innotekseo-cli/
 │   ├── md-scanner.test.ts           # 12 tests
 │   ├── llms-builder.test.ts         # 4 tests
 │   ├── frontmatter-validator.test.ts # 6 tests
-│   └── site-locator.test.ts         # 6 tests
+│   ├── site-locator.test.ts         # 6 tests
+│   ├── wp-transport.test.ts         # 9 tests
+│   └── md-to-html.test.ts           # 8 tests
 ├── dist/                            # Build output (gitignored)
 ├── package.json
 ├── tsconfig.json                    # target: ES2021, module: commonjs
@@ -100,6 +134,7 @@ program.addCommand(scanCommand);
 program.addCommand(initCommand);
 program.addCommand(articlesCommand);
 program.addCommand(blogCommand);
+program.addCommand(wpCommand);
 ```
 
 No business logic here — pure wiring.
@@ -204,6 +239,99 @@ interface BlogPost {
 ```
 
 Appends to array, re-sorts by `date` descending, writes back with `JSON.stringify(updated, null, 2) + '\n'` (preserves 2-space indent + trailing newline).
+
+---
+
+### Command group: `wp` (`src/commands/wp.ts`)
+
+**Purpose:** Publish markdown content to WordPress sites via WP-CLI or REST API. Works with any WordPress host (self-hosted, IONOS, GoDaddy, WP Engine, etc.).
+
+**Shared options (all subcommands):**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-t, --transport <type>` | `wp-cli` | Transport: `wp-cli` or `rest` |
+| `--wp-url <url>` | `$WP_URL` | WordPress site URL (required for REST) |
+| `--wp-user <user>` | `$WP_USER` | WordPress username (required for REST) |
+| `--wp-pass <pass>` | `$WP_PASS` | Application password (required for REST) |
+| `--wp-path <path>` | `$WP_PATH` | Local WP install path (wp-cli only) |
+| `--wp-ssh <host>` | `$WP_SSH` | SSH host for remote wp-cli |
+
+All options fall back to environment variables when flags are omitted.
+
+#### `wp list`
+
+Fetches posts from WordPress and displays a table.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--post-type <type>` | `post` | Post type (post, page, etc.) |
+| `--status <status>` | `any` | Status filter |
+| `--per-page <n>` | `50` | Number of posts to fetch |
+
+#### `wp add <file>`
+
+Validates frontmatter, converts markdown to HTML via `marked`, maps fields to WordPress post data, and publishes.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--post-type <type>` | `post` | Post type |
+| `--status <status>` | `draft` | Post status (draft, publish, pending) |
+| `--dry-run` | `false` | Preview without publishing |
+
+**Data flow:**
+```
+path.resolve(file)
+  → matter(raw)                         [gray-matter]      → { data, content }
+  → validateFrontmatter(data)           [frontmatter-validator.ts]
+  → markdownToHtml(content)             [md-to-html.ts]    → HTML string
+  → frontmatterToWpPost(data, slug, html) [wp-transport.ts] → WpPost
+  → transport.create(wpPost)            [wp-transport.ts]   → published post
+```
+
+**Frontmatter → WordPress field mapping:**
+
+| Frontmatter | WordPress | Notes |
+|---|---|---|
+| `title` | `post_title` | Required |
+| `date` | `post_date` | Required |
+| `slug` / filename | `post_name` | slug from frontmatter, else filename |
+| `excerpt` | `post_excerpt` | Optional |
+| `author` | `post_author` | Optional |
+| `category` | `post_category` | Resolved to term ID (REST) |
+| `tags` (array) | `tags_input` | Resolved to term IDs (REST) |
+| `emoji` | `meta.emoji` | Custom field |
+| `readTime` | `meta.readTime` | Custom field |
+
+#### `wp scan <directory>`
+
+Generates `llms.txt` (same as `scan` command) and optionally publishes all files to WordPress with `--publish`.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-o, --output <path>` | `./llms.txt` | Output file path |
+| `-u, --url <url>` | `https://example.com` | Base URL for llms.txt |
+| `-r, --recursive` | `false` | Recurse into subdirectories |
+| `--publish` | `false` | Also publish each file to WordPress |
+| `--post-type <type>` | `post` | Post type when publishing |
+| `--status <status>` | `draft` | Post status when publishing |
+| `--dry-run` | `false` | Preview without writing or publishing |
+
+---
+
+### Transport layer (`src/lib/wp-transport.ts`)
+
+Defines `WpTransport` interface with two implementations:
+
+**`WpCliTransport`** — Shells out to `wp` binary. Supports `--path` for local installs and `--ssh` for remote hosts. Best for servers with shell access.
+
+**`WpRestTransport`** — Uses `fetch` against the WordPress REST API (`/wp-json/wp/v2/`). Authenticates via Basic Auth with application passwords. Works with any host (IONOS, GoDaddy, shared hosting, etc.). Automatically resolves category/tag names to term IDs, creating terms if needed.
+
+**`frontmatterToWpPost()`** — Maps parsed frontmatter to the `WpPost` interface. Custom fields (`emoji`, `readTime`) go into `meta`.
+
+### Markdown-to-HTML (`src/lib/md-to-html.ts`)
+
+**`markdownToHtml(md): string`** — Converts markdown body (post gray-matter extraction) to HTML using `marked`. WordPress stores HTML, so this step is required before publishing.
 
 ---
 
@@ -342,7 +470,7 @@ copy-templates (node -e)    → copies src/templates/ → dist/templates/ recurs
 
 Config (`vitest.config.ts`): `globals: true`, `environment: 'node'`.
 
-28 tests across 4 files, all pass:
+45 tests across 6 files, all pass:
 
 | File | Count | What it covers |
 |------|-------|----------------|
@@ -350,6 +478,8 @@ Config (`vitest.config.ts`): `globals: true`, `environment: 'node'`.
 | `tests/llms-builder.test.ts` | 4 | Header format, zero entries, N entries line format, entry count |
 | `tests/frontmatter-validator.test.ts` | 6 | Valid pass, missing title error, missing date error, missing excerpt warns only, all 4 warnings emitted, both required missing |
 | `tests/site-locator.test.ts` | 6 | Explicit valid path, non-existent path throws, invalid path throws, env var resolves, invalid env var throws, no-site-found throws (auto-skips if sibling exists locally) |
+| `tests/wp-transport.test.ts` | 9 | `frontmatterToWpPost` field mapping: basic fields, title/date fallbacks, tags array, meta fields, author inclusion/omission |
+| `tests/md-to-html.test.ts` | 8 | Heading, paragraph, bold/italic, links, lists, code blocks, trimming, empty input |
 
 Tests use `os.tmpdir()` + `fs.mkdtempSync` for temp fixtures; `beforeAll`/`afterAll` clean up with `fs.rmSync(..., { recursive: true, force: true })`.
 
@@ -408,6 +538,7 @@ Default branch: `master`
 |---------|---------|
 | `commander ^12` | CLI argument parsing, subcommand groups |
 | `gray-matter ^4` | YAML frontmatter parsing from `.md`/`.mdx` |
+| `marked ^15` | Markdown-to-HTML conversion for WordPress publishing |
 
 ### Dev
 | Package | Purpose |
